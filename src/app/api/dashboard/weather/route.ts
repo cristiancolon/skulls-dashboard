@@ -33,7 +33,6 @@ const getWeatherCondition = (code: number) => {
 
 export async function GET() {
   try {
-    // Back Bay, Boston coordinates (Copley Square)
     const lat = 42.3505;
     const lon = -71.0800;
     

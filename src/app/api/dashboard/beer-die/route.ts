@@ -3,8 +3,28 @@ import { NextResponse } from 'next/server';
 const SHEET_ID = '1do4lJRRvJSRx8qTW0NAMJTWJjM4u0-uVJP8K3D3oJis';
 const PLAYER_STATS_SHEET = 'Player Stats';
 const GAME_LEDGER_SHEET = 'Game Ledger';
+const CACHE_WINDOW_MS = 60_000;
 
 type Trend = 'up' | 'down' | 'same';
+
+interface BeerDieResponse {
+  rankings: {
+    rank: number;
+    name: string;
+    elo: number;
+    trend: Trend;
+  }[];
+  recentGames: {
+    id: string;
+    summary: string;
+    score: string;
+    timeAgo: string;
+  }[];
+  updatedAt: string;
+}
+
+let cachedBeerDieResponse: BeerDieResponse | null = null;
+let cachedBeerDieResponseAt = 0;
 
 function parseCsv(csvText: string): Record<string, string>[] {
   const rows: string[][] = [];
@@ -72,7 +92,7 @@ function parseCsv(csvText: string): Record<string, string>[] {
 
 async function fetchSheetRows(sheetName: string): Promise<Record<string, string>[]> {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-  const response = await fetch(url, { next: { revalidate: 60 } });
+  const response = await fetch(url, { cache: 'no-store' });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch sheet: ${sheetName}`);
@@ -144,6 +164,12 @@ function formatTeam(player1: string, player2: string): string {
 
 export async function GET() {
   try {
+    const now = Date.now();
+
+    if (cachedBeerDieResponse && now - cachedBeerDieResponseAt < CACHE_WINDOW_MS) {
+      return NextResponse.json(cachedBeerDieResponse);
+    }
+
     const [rawPlayerStatsRows, rawGameLedgerRows] = await Promise.all([
       fetchSheetRows(PLAYER_STATS_SHEET),
       fetchSheetRows(GAME_LEDGER_SHEET),
@@ -187,11 +213,16 @@ export async function GET() {
         timeAgo: row.timeAgo,
       }));
 
-    return NextResponse.json({
+    const responseData: BeerDieResponse = {
       rankings,
       recentGames,
       updatedAt: new Date().toISOString()
-    });
+    };
+
+    cachedBeerDieResponse = responseData;
+    cachedBeerDieResponseAt = now;
+
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Beer Die API Error:', error);
     return NextResponse.json(
