@@ -45,7 +45,7 @@ export default function TransitView() {
       <div className="flex-1 w-full relative">
         <iframe 
           src="https://passiogo.com/" 
-          className="absolute inset-0 w-full h-full border-none block"
+          className="absolute inset-0 h-full w-full border-none block"
           title="MIT Passio Shuttle Map"
         />
         {/* Optional overlay if iframe fails could go here, but iframe handles itself usually */}
