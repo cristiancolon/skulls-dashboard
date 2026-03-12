@@ -6,14 +6,16 @@ interface Ranking {
   rank: number;
   name: string;
   elo: number;
-  trend: 'up' | 'down' | 'same';
+  wins: number;
+  losses: number;
 }
 
 interface Game {
-  id: number;
+  id: string;
   summary: string;
   score: string;
   timeAgo: string;
+  drink: string;
 }
 
 interface BeerDieData {
@@ -50,12 +52,6 @@ export default function BeerDieView() {
     return () => clearInterval(interval);
   }, []);
 
-  const getTrendIcon = (trend: string) => {
-    if (trend === 'up') return <span className="text-green-500">↑</span>;
-    if (trend === 'down') return <span className="text-red-500">↓</span>;
-    return <span className="text-gray-500">-</span>;
-  };
-
   return (
     <div className="flex h-full w-full flex-col bg-[var(--color-primary)] p-8 text-[var(--color-text-primary)]">
       <div className="flex justify-between items-end mb-4 border-b-2 border-[var(--color-accent)] pb-2">
@@ -81,8 +77,10 @@ export default function BeerDieView() {
                 <div key={player.rank} className="flex items-center text-large">
                   <div className="w-16 text-[var(--color-accent)] font-bold">{player.rank}.</div>
                   <div className="flex-grow font-bold">{player.name}</div>
+                  <div className="w-24 text-right font-mono text-[var(--color-text-secondary)]">
+                    {player.wins}-{player.losses}
+                  </div>
                   <div className="w-24 text-right font-mono">{player.elo}</div>
-                  <div className="w-12 text-center">{getTrendIcon(player.trend)}</div>
                 </div>
               ))}
             </div>
@@ -111,6 +109,8 @@ export default function BeerDieView() {
                     <span className="font-mono">{game.score}</span>
                     <span className="text-[var(--color-text-secondary)]">•</span>
                     <span className="text-[var(--color-text-secondary)]">{game.timeAgo}</span>
+                    <span className="text-[var(--color-text-secondary)]">•</span>
+                    <span className="text-[var(--color-text-secondary)]">{game.drink}</span>
                   </div>
                 </div>
               ))}

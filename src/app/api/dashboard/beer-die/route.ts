@@ -5,14 +5,13 @@ const PLAYER_STATS_SHEET = 'Player Stats';
 const GAME_LEDGER_SHEET = 'Game Ledger';
 const CACHE_WINDOW_MS = 60_000;
 
-type Trend = 'up' | 'down' | 'same';
-
 interface BeerDieResponse {
   rankings: {
     rank: number;
     name: string;
     elo: number;
-    trend: Trend;
+    wins: number;
+    losses: number;
   }[];
   recentGames: {
     id: string;
@@ -180,9 +179,17 @@ export async function GET() {
         rank: Number.parseInt(row.rank ?? '', 10),
         name: formatDisplayName(row.player_name ?? ''),
         elo: Math.round(Number.parseFloat(row.ELO ?? '')),
-        trend: 'same' as Trend,
+        wins: Number.parseInt(row.wins ?? '', 10),
+        losses: Number.parseInt(row.losses ?? '', 10),
       }))
-      .filter((row) => row.name && Number.isFinite(row.rank) && Number.isFinite(row.elo))
+      .filter(
+        (row) =>
+          row.name &&
+          Number.isFinite(row.rank) &&
+          Number.isFinite(row.elo) &&
+          Number.isFinite(row.wins) &&
+          Number.isFinite(row.losses)
+      )
       .sort((a, b) => a.rank - b.rank || b.elo - a.elo)
       .slice(0, 10);
 
@@ -200,6 +207,7 @@ export async function GET() {
           summary: `${winningTeam} def. ${losingTeam}`,
           score: formatScore(row.score_type ?? '', row.winner_remaining ?? ''),
           timeAgo: formatRelativeTime(timestamp),
+          drink: (row.drink_type ?? '').trim() || 'Unknown',
           timestampMs,
         };
       })
@@ -211,6 +219,7 @@ export async function GET() {
         summary: row.summary,
         score: row.score,
         timeAgo: row.timeAgo,
+        drink: row.drink,
       }));
 
     const responseData: BeerDieResponse = {
