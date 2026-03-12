@@ -98,8 +98,8 @@ export default function WeatherView() {
     };
 
     fetchWeatherData();
-    // Refresh every 30 minutes
-    const interval = setInterval(fetchWeatherData, 1800000);
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchWeatherData, 300000);
     return () => clearInterval(interval);
   }, []);
 

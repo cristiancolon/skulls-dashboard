@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+const WEATHER_TIMEZONE = 'America/New_York';
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 // Weather code mapping to simple conditions and icons
 const getWeatherCondition = (code: number) => {
   switch (true) {
@@ -31,14 +34,44 @@ const getWeatherCondition = (code: number) => {
   }
 };
 
+function formatLocalClock(timeString: string): string {
+  const [, clockPart = ''] = timeString.split('T');
+  const [hourPart = '0', minutePart = '00'] = clockPart.split(':');
+  const hour = Number.parseInt(hourPart, 10);
+
+  if (!Number.isFinite(hour)) {
+    return timeString;
+  }
+
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const normalizedHour = hour % 12 || 12;
+  return `${normalizedHour}:${minutePart} ${period}`;
+}
+
+function getWeekdayLabel(dateString: string): string {
+  const [yearPart, monthPart, dayPart] = dateString.split('-');
+  const year = Number.parseInt(yearPart, 10);
+  const month = Number.parseInt(monthPart, 10);
+  const day = Number.parseInt(dayPart, 10);
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return dateString;
+  }
+
+  // Open-Meteo daily dates are already local dates in the requested timezone.
+  const weekdayIndex = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return WEEKDAY_LABELS[weekdayIndex];
+}
+
 export async function GET() {
   try {
+    // Back Bay, Boston
     const lat = 42.3505;
     const lon = -71.0800;
     
     const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=America%2FNew_York`,
-      { next: { revalidate: 1800 } } // Revalidate every 30 minutes
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=${encodeURIComponent(WEATHER_TIMEZONE)}`,
+      { next: { revalidate: 300 } } // Revalidate every 5 minutes
     );
 
     if (!response.ok) {
@@ -58,15 +91,13 @@ export async function GET() {
       high: Math.round(data.daily.temperature_2m_max[0]),
       low: Math.round(data.daily.temperature_2m_min[0]),
       precipChance: data.daily.precipitation_probability_max[0],
-      sunrise: new Date(data.daily.sunrise[0]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-      sunset: new Date(data.daily.sunset[0]).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      sunrise: formatLocalClock(data.daily.sunrise[0]),
+      sunset: formatLocalClock(data.daily.sunset[0]),
     };
 
     const forecast = data.daily.time.slice(1, 5).map((time: string, index: number) => {
-      const date = new Date(time);
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       return {
-        day: days[date.getDay()],
+        day: getWeekdayLabel(time),
         high: Math.round(data.daily.temperature_2m_max[index + 1]),
         low: Math.round(data.daily.temperature_2m_min[index + 1]),
         condition: getWeatherCondition(data.daily.weather_code[index + 1]),
