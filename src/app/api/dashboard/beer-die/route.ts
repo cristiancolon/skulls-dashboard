@@ -4,6 +4,8 @@ const SHEET_ID = '1do4lJRRvJSRx8qTW0NAMJTWJjM4u0-uVJP8K3D3oJis';
 const PLAYER_STATS_SHEET = 'Player Stats';
 const GAME_LEDGER_SHEET = 'Game Ledger';
 const CACHE_WINDOW_MS = 60_000;
+const EASTERN_TIME_ZONE = 'America/New_York';
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface BeerDieResponse {
   rankings: {
@@ -17,7 +19,7 @@ interface BeerDieResponse {
     id: string;
     summary: string;
     score: string;
-    timeAgo: string;
+    datetime: string;
   }[];
   updatedAt: string;
 }
@@ -101,29 +103,53 @@ async function fetchSheetRows(sheetName: string): Promise<Record<string, string>
   return parseCsv(csvText);
 }
 
-function formatRelativeTime(timestamp: string): string {
+function formatGameTimeEastern(timestamp: string): string {
   const date = new Date(timestamp);
-  const diffMs = Date.now() - date.getTime();
 
   if (Number.isNaN(date.getTime())) {
     return 'Unknown time';
   }
 
-  const minutes = Math.floor(diffMs / 60000);
-  if (minutes < 1) {
-    return 'Just now';
-  }
-  if (minutes < 60) {
-    return `${minutes}m ago`;
+  const diffMs = Date.now() - date.getTime();
+  const easternDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: EASTERN_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+  const easternToday = new Intl.DateTimeFormat('en-CA', {
+    timeZone: EASTERN_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  const easternTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: EASTERN_TIME_ZONE,
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+
+  if (easternDate === easternToday) {
+    return `Today, ${easternTime}`;
   }
 
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    return `${hours}h ago`;
+  if (diffMs < WEEK_MS) {
+    const easternWeekday = new Intl.DateTimeFormat('en-US', {
+      timeZone: EASTERN_TIME_ZONE,
+      weekday: 'short',
+    }).format(date);
+
+    return `${easternWeekday}, ${easternTime}`;
   }
 
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  const easternMonthDay = new Intl.DateTimeFormat('en-US', {
+    timeZone: EASTERN_TIME_ZONE,
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+
+  return `${easternMonthDay}, ${easternTime}`;
 }
 
 function formatScore(scoreType: string, winnerRemaining: string): string {
@@ -206,7 +232,7 @@ export async function GET() {
           id: row.game_id || `${timestamp}-${winningTeam}`,
           summary: `${winningTeam} def. ${losingTeam}`,
           score: formatScore(row.score_type ?? '', row.winner_remaining ?? ''),
-          timeAgo: formatRelativeTime(timestamp),
+          datetime: formatGameTimeEastern(timestamp),
           drink: (row.drink_type ?? '').trim() || 'Unknown',
           timestampMs,
         };
@@ -218,7 +244,7 @@ export async function GET() {
         id: row.id,
         summary: row.summary,
         score: row.score,
-        timeAgo: row.timeAgo,
+        datetime: row.datetime,
         drink: row.drink,
       }));
 

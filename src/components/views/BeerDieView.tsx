@@ -14,7 +14,7 @@ interface Game {
   id: string;
   summary: string;
   score: string;
-  timeAgo: string;
+  datetime: string;
   drink: string;
 }
 
@@ -108,7 +108,7 @@ export default function BeerDieView() {
                   <div className="text-medium text-[var(--color-accent)] flex items-center gap-4">
                     <span className="font-mono">{game.score}</span>
                     <span className="text-[var(--color-text-secondary)]">•</span>
-                    <span className="text-[var(--color-text-secondary)]">{game.timeAgo}</span>
+                    <span className="text-[var(--color-text-secondary)]">{game.datetime}</span>
                     <span className="text-[var(--color-text-secondary)]">•</span>
                     <span className="text-[var(--color-text-secondary)]">{game.drink}</span>
                   </div>
