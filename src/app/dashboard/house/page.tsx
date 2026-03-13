@@ -9,7 +9,7 @@ type ViewType = 'transit' | 'beer-die' | 'weather';
 
 const ROTATION_SCHEDULE: { view: ViewType; duration: number }[] = [
   { view: 'transit', duration: 30000 },
-  { view: 'beer-die', duration: 10000 },
+  { view: 'beer-die', duration: 15000 },
   { view: 'weather', duration: 15000 },
 ];
 
