@@ -8,6 +8,7 @@ interface Ranking {
   elo: number;
   wins: number;
   losses: number;
+  eloDelta: number;
 }
 
 interface Game {
@@ -23,6 +24,30 @@ interface BeerDieData {
   recentGames: Game[];
   updatedAt: string;
   error?: string;
+}
+
+function getEloDeltaDisplay(eloDelta: number) {
+  if (eloDelta > 0) {
+    return {
+      arrow: '↑',
+      value: `${eloDelta}`,
+      arrowClassName: 'text-green-500',
+    };
+  }
+
+  if (eloDelta < 0) {
+    return {
+      arrow: '↓',
+      value: `${Math.abs(eloDelta)}`,
+      arrowClassName: 'text-red-500',
+    };
+  }
+
+  return {
+    arrow: '',
+    value: '0',
+    arrowClassName: '',
+  };
 }
 
 export default function BeerDieView() {
@@ -77,10 +102,18 @@ export default function BeerDieView() {
                 <div key={player.rank} className="flex items-center text-large">
                   <div className="w-16 text-[var(--color-accent)] font-bold">{player.rank}.</div>
                   <div className="flex-grow font-bold">{player.name}</div>
-                  <div className="w-24 text-right font-mono text-[var(--color-text-secondary)]">
-                    {player.wins}-{player.losses}
+                  <div className="ml-4 flex items-center justify-end gap-4 font-mono">
+                    <div className="w-24 text-right text-[var(--color-text-secondary)]">
+                      {player.wins}-{player.losses}
+                    </div>
+                    <div className="w-20 text-right">{player.elo}</div>
+                    <div className="w-16 text-right">
+                      <span className={getEloDeltaDisplay(player.eloDelta).arrowClassName}>
+                        {getEloDeltaDisplay(player.eloDelta).arrow}
+                      </span>
+                      <span>{getEloDeltaDisplay(player.eloDelta).value}</span>
+                    </div>
                   </div>
-                  <div className="w-24 text-right font-mono">{player.elo}</div>
                 </div>
               ))}
             </div>

@@ -14,12 +14,14 @@ interface BeerDieResponse {
     elo: number;
     wins: number;
     losses: number;
+    eloDelta: number;
   }[];
   recentGames: {
     id: string;
     summary: string;
     score: string;
     datetime: string;
+    drink: string;
   }[];
   updatedAt: string;
 }
@@ -201,13 +203,18 @@ export async function GET() {
     ]);
 
     const rankings = rawPlayerStatsRows
-      .map((row) => ({
-        rank: Number.parseInt(row.rank ?? '', 10),
-        name: formatDisplayName(row.player_name ?? ''),
-        elo: Math.round(Number.parseFloat(row.ELO ?? '')),
-        wins: Number.parseInt(row.wins ?? '', 10),
-        losses: Number.parseInt(row.losses ?? '', 10),
-      }))
+      .map((row) => {
+        const eloDelta = Number.parseInt(row.last_game_elo_delta ?? '', 10);
+
+        return {
+          rank: Number.parseInt(row.rank ?? '', 10),
+          name: formatDisplayName(row.player_name ?? ''),
+          elo: Math.round(Number.parseFloat(row.ELO ?? '')),
+          wins: Number.parseInt(row.wins ?? '', 10),
+          losses: Number.parseInt(row.losses ?? '', 10),
+          eloDelta: Number.isFinite(eloDelta) ? eloDelta : 0,
+        };
+      })
       .filter(
         (row) =>
           row.name &&
